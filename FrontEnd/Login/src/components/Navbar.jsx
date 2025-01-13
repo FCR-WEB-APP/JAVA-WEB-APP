@@ -2,7 +2,7 @@
 import { AppBar, Toolbar, IconButton, Typography, Box } from '@mui/material';
 import { Notifications, AccountCircle } from '@mui/icons-material'; 
 import SunLogo from "../assets/Sun Logo.jpg";
-import MashreqLogo from "../assets/Mashreq Logo.jpg";
+import SunLogo from "../assets/Sun Logo.jpg"
 
 const Navbar = ({ userName }) => {
   return (
@@ -19,8 +19,8 @@ const Navbar = ({ userName }) => {
  
         <Box className="flex items-center justify-center flex-grow">
           <img
-            src={MashreqLogo}   
-            alt="Mashreq Logo"
+            src={SunLogo}   
+            alt="SunLogo Logo"
             className="max-w-56"   
           />
         </Box>
