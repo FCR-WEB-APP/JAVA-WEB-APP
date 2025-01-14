@@ -278,7 +278,7 @@ function DashboardOfSrCR({ loggedInUser }) {
               value={newCase.groupName}
               onChange={handleInputChange}
             >
-              <MenuItem value="Mashreq">Mashreq</MenuItem>
+              <MenuItem value="Mashreq">Bank</MenuItem>
               <MenuItem value="AMBIQ">AMBIQ</MenuItem>
               <MenuItem value="ASSETS">ASSETS</MenuItem>
             </Select>
@@ -291,7 +291,7 @@ function DashboardOfSrCR({ loggedInUser }) {
               onChange={handleInputChange}
             >
               <MenuItem value="FIXED">FIXED</MenuItem>
-              <MenuItem value="T&M">T&M</MenuItem>
+              <MenuItem value="T&M">API-C</MenuItem>
               <MenuItem value="IIB">IIB</MenuItem>
             </Select>
           </FormControl>
