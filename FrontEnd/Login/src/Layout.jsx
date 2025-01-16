@@ -7,7 +7,7 @@ function Layout() {
   return (
     <div>
       <Navbar userName={loggedInUser} />
-      <Outlet />
+      <Outlet/>
     </div>
   );
 }
