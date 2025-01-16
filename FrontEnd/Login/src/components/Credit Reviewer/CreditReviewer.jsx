@@ -935,7 +935,7 @@ const handleClose = () => {
                           Special Assets
                         </MenuItem>
                         <MenuItem value="AMIQB">AMIQB</MenuItem>
-                        <MenuItem value="MASHREQ">MASHREQ</MenuItem>
+                        <MenuItem value="Bank">Bank</MenuItem>
                       </TextField>
                     </Grid>
                     <Grid item xs={6}>

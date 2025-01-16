@@ -12,18 +12,20 @@ import DashboardtoAssignCR from './components/Dashboard/DashboardtoAssignCR.jsx'
 import CreditReviewertoAssignSPOC from './components/CreditReviewer/CreditReviewertoAssignSPOC.jsx'
 import SPOCScreenForChild from './components/SPOC/SPOCScreenForChild.jsx'
 import SPOCScreenForIssue from './components/SPOC/SPOCScreenForIssue.jsx'
+
+const loggedInUser = "John Doe";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<Layout />}>
-      <Route path="/" element={<DashboardOfSrCR />} /> 
-      <Route path="srcreditreviewer" element={<SrCreditReviewer />} /> 
-      <Route path="dashboardfcr" element={<DashboardOfHOFCR />} /> 
-      <Route path="headOfFCR" element={<HeadOfFCR />} /> 
-      <Route path="srcrassign" element={<SrCRAssignCR />} />
-      <Route path="dashtoAssign" element={<DashboardtoAssignCR />} /> 
-      <Route path="creditreviewerassign" element={<CreditReviewertoAssignSPOC />} />
-      <Route path="spocchild" element={<SPOCScreenForChild />} />
-      <Route path="spocissue" element={<SPOCScreenForIssue/>} />
+      <Route path="/" element={<DashboardOfSrCR loggedInUser={loggedInUser}/>} /> 
+      <Route path="srcreditreviewer" element={<SrCreditReviewer loggedInUser={loggedInUser}/>} /> 
+      <Route path="dashboardfcr" element={<DashboardOfHOFCR loggedInUser={loggedInUser}/>} /> 
+      <Route path="headOfFCR" element={<HeadOfFCR loggedInUser={loggedInUser} />} /> 
+      <Route path="srcrassign" element={<SrCRAssignCR loggedInUser={loggedInUser}/>} />
+      <Route path="dashtoAssign" element={<DashboardtoAssignCR loggedInUser={loggedInUser}/>} /> 
+      <Route path="creditreviewerassign" element={<CreditReviewertoAssignSPOC loggedInUser={loggedInUser} />} />
+      <Route path="spocchild" element={<SPOCScreenForChild loggedInUser={loggedInUser}/>} />
+      <Route path="spocissue" element={<SPOCScreenForIssue loggedInUser={loggedInUser}/>} />
     </Route>
   )
 )

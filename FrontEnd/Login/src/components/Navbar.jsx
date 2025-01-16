@@ -1,9 +1,7 @@
 
 import { AppBar, Toolbar, IconButton, Typography, Box } from '@mui/material';
 import { Notifications, AccountCircle } from '@mui/icons-material'; 
-import SunLogo from "../assets/Sun Logo.jpg";
-import MashreqLogo from "../assets/Mashreq Logo.jpg";
-
+import Sun from "../assets/soundcloud.png";
 const Navbar = ({ userName }) => {
   return (
     <AppBar position="sticky" sx={{ backgroundColor: '#ffffff' }}>
@@ -11,17 +9,17 @@ const Navbar = ({ userName }) => {
   
         <Box className="flex items-center">
           <img
-            src={SunLogo}   
+            src={Sun}   
             alt="Sun Logo"
-            className="w-32"   
+            className="max-w-14"   
           />
         </Box>
  
         <Box className="flex items-center justify-center flex-grow">
           <img
-            src={MashreqLogo}   
-            alt="Mashreq Logo"
-            className="max-w-56"   
+            src={Sun}   
+            alt="Sun Logo"
+            className="max-w-14"   
           />
         </Box>
 
