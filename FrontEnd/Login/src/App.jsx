@@ -11,11 +11,13 @@ import SrCRAssignCR from './components/Sr. Credit Reviewer/SrCRAssignCR';
 import CreditReviewertoAssignSPOC from './components/CreditReviewer/CreditReviewertoAssignSPOC';
 import SPOCScreenForIssue from './components/SPOC/SPOCScreenForIssue';
 import SPOCScreenForChild from './components/SPOC/SPOCScreenForChild';
+import Login from './components/SignIn&SignUp/Login';
 function App() {
 
   const loggedInUser = "John Doe";
   return (
     <>
+    <Login/>
       {/* <Navbar userName={loggedInUser} />
       <Dashboard userName={loggedInUser}/> */}
       {/* <SrCreditReviewer loggedInUser={loggedInUser}/> */}
