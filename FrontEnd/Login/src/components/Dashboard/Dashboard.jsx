@@ -19,6 +19,8 @@ import {
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import axios from "axios";
 function DashboardOfSrCR({ loggedInUser }) {
 
   const navigate = useNavigate();
@@ -33,14 +35,38 @@ function DashboardOfSrCR({ loggedInUser }) {
     navigate("/  srcrassign");
   };
 
+  const [groupTasks, setGroupTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [groupTasks, setGroupTasks] = useState([
-    { id: 1, reviewId: '12345', childReviewId: '67890', division: 'Bank', groupName: 'Fixed', status: 'Active', assignedTo: 'Santosh', role: 'Sr. Credit Reviewer', createdBy: 'Sr. Credit Reviewer' },
-    { id: 2, reviewId: '54321', childReviewId: '98765', division: 'Finance', groupName: 'T&M', status: 'Pending', assignedTo: 'Tejas', role: 'Credit Reviewer', createdBy: 'Sr. Credit Reviewer' },
-    { id: 3, reviewId: '13579', childReviewId: '24680', division: 'Assets', groupName: 'T&M', status: 'In Progress', assignedTo: 'Mayur', role: 'SPOC', createdBy: 'Sr. Credit Reviewer' },
-    { id: 4, reviewId: '24680', childReviewId: '13579', division: 'Bank', groupName: 'Fixed', status: 'Completed', assignedTo: 'Lokesh', role: 'Head Of FCR', createdBy: 'Sr. Credit Reviewer' },
-    { id: 5, reviewId: '11223', childReviewId: '44556', division: 'AMBEQ', groupName: 'Eidiko', status: 'Active', assignedTo: 'Pilli', role: 'Credit Reviewer', createdBy: 'Sr. Credit Reviewer' },
-  ]);
+
+  // Fetch group tasks from the backend
+  const fetchGroupTasks = async () => {
+    try {
+      const role = 'Sr. Credit Reviewer';
+      const response = await axios.get(`/api/tasks/group-tasks?role=${role}`);
+      const tasks = Array.isArray(response.data) 
+        ? response.data.map((task) => ({
+            id: task.caseRefNo || '',
+            reviewId: task.caseRefNo || '',
+            childReviewId: '',
+            division: task.divisionName || '',
+            groupName: task.groupName || '',
+            status: task.status || '',
+            assignedTo: task.assignedTo || '',
+            role: task.role || '',
+            createdDate: task.createdDate || '',
+          }))
+        : [];
+      setGroupTasks(tasks);
+    } catch (error) {
+      console.error('Error fetching group tasks:', error);
+    }
+  };
+  
+  useEffect(() => {
+    fetchGroupTasks();
+  }, []);
+ 
+
   const [myTasks, setMyTasks] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formValues, setFormValues] = useState({
@@ -91,26 +117,67 @@ function DashboardOfSrCR({ loggedInUser }) {
     division: "",
   });
 
-  const handleCreateCase = () => {
+  const staticJWTToken = localStorage.getItem('Bearer');
+
+  const decodeJWT = (token) => {
+    if (!token || token.split(".").length !== 3) {
+      throw new Error("Invalid token format");
+    }
+    const payload = token.split(".")[1];  // Get the payload part
+    const decodedPayload = JSON.parse(atob(payload));  // Decode from Base64 to 
+    console.log(decodedPayload);
+    return decodedPayload;
+  };
+  
+  const decodedToken = decodeJWT(staticJWTToken);
+  const name = decodedToken.sub;
+  console.log(name);
+  const handleCreateCase = async () => {
     if (newCase.reviewId && newCase.groupName && newCase.division) {
-      const newTask = {
-        id: groupTasks.length + 1,
-        reviewId: newCase.reviewId,
-        childReviewId: "N/A",
-        division: newCase.division,
+      // Prepare payload excluding createdDate and updatedDate
+      const casePayload = {
+        caseRefNo: newCase.reviewId,  
         groupName: newCase.groupName,
-        status: "New",
-        assignedTo: "N/A",
-        role: "N/A",
-        createdBy: "User",
+        divisionName: newCase.division,
+        activityLevel: null,
+        status: "Pending", 
+        assignedTo: "Unassigned", 
+        planing: null,
+        fieldWork: null,
+        actions: null,
       };
-      setGroupTasks((prev) => [...prev, newTask]);
-      setNewCase({ reviewId: "", groupName: "", division: "" });
-      handleModalClose();
+  
+      try {
+        const response = await axios.post(
+          'http://localhost:1000/api/addcasedetails',
+          casePayload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${staticJWTToken}`,  
+              'username': name
+            },
+          }
+        );
+  
+        if (response.status === 200) {
+          alert('Case created successfully!');
+          setGroupTasks((prev) => [...prev, response.data.data]); 
+          setNewCase({ reviewId: '', groupName: '', division: '' });
+        } else {
+          alert('Failed to create case. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error creating case:', error);
+        alert('An error occurred while creating the case.');
+      }
     } else {
-      alert("Please fill in all fields.");
+      alert('Please fill in all fields.');
     }
   };
+  
+
+  
 
   return (
     <div className="p-4">
@@ -165,19 +232,21 @@ function DashboardOfSrCR({ loggedInUser }) {
           {selectedTask === 'group' && (
             <TableContainer component={Paper}>
               <Table>
-                <TableHead>
+              <TableHead>
                   <TableRow>
-                    <TableCell>Start Case</TableCell>
-                    <TableCell>Review ID</TableCell>
+                  <TableCell>Review ID</TableCell>
                     <TableCell>ChildReview ID</TableCell>
-                    <TableCell>Division</TableCell>
+                    <TableCell>Issue ID</TableCell>
+                    <TableCell>Track Issue ID</TableCell>
                     <TableCell>Group Name</TableCell>
+                    <TableCell>Division</TableCell>
                     <TableCell>Current Status</TableCell>
                     <TableCell>Assigned To</TableCell>
                     <TableCell>Role</TableCell>
-                    <TableCell>Created By</TableCell>
+                    <TableCell>Created Date</TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
                   {groupTasks.map((task) => (
                     <TableRow key={task.id}>
@@ -189,32 +258,37 @@ function DashboardOfSrCR({ loggedInUser }) {
                       </TableCell>
                       <TableCell>{task.reviewId}</TableCell>
                       <TableCell>{task.childReviewId}</TableCell>
-                      <TableCell>{task.division}</TableCell>
+                      <TableCell>{task.issueId}</TableCell>
+                      <TableCell>{task.trackIssueId}</TableCell>
                       <TableCell>{task.groupName}</TableCell>
+                      <TableCell>{task.division}</TableCell>
                       <TableCell>{task.status}</TableCell>
                       <TableCell>{task.assignedTo}</TableCell>
                       <TableCell>{task.role}</TableCell>
-                      <TableCell>{task.createdBy}</TableCell>
+                      <TableCell>{task.createdDate}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
+
               </Table>
             </TableContainer>
           )}
           {selectedTask === 'my' && (
             <TableContainer component={Paper}>
               <Table>
-                <TableHead>
+              <TableHead>
                   <TableRow>
                   <TableCell>Start Case</TableCell>
                     <TableCell>Review ID</TableCell>
                     <TableCell>ChildReview ID</TableCell>
-                    <TableCell>Division</TableCell>
+                    <TableCell>Issue ID</TableCell>
+                    <TableCell>Track Issue ID</TableCell>
                     <TableCell>Group Name</TableCell>
+                    <TableCell>Division</TableCell>
                     <TableCell>Current Status</TableCell>
                     <TableCell>Assigned To</TableCell>
                     <TableCell>Role</TableCell>
-                    <TableCell>Created By</TableCell>
+                    <TableCell>Created Date</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -229,15 +303,18 @@ function DashboardOfSrCR({ loggedInUser }) {
                       </TableCell>
                       <TableCell>{task.reviewId}</TableCell>
                       <TableCell>{task.childReviewId}</TableCell>
-                      <TableCell>{task.division}</TableCell>
+                      <TableCell>{task.issueId}</TableCell>
+                      <TableCell>{task.trackIssueId}</TableCell>
                       <TableCell>{task.groupName}</TableCell>
+                      <TableCell>{task.division}</TableCell>
                       <TableCell>{task.status}</TableCell>
                       <TableCell>{task.assignedTo}</TableCell>
                       <TableCell>{task.role}</TableCell>
-                      <TableCell>{task.createdBy}</TableCell>
+                      <TableCell>{task.createdDate}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
+
               </Table>
             </TableContainer>
           )}
