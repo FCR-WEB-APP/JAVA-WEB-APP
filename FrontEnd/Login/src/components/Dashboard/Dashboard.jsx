@@ -176,6 +176,9 @@ function DashboardOfSrCR({ loggedInUser }) {
         if (response.status === 200) {
           // Close the modal
           handleModalClose();
+
+
+
   
           // Close the Swal loader and show success after 3 seconds
           setTimeout(() => {
