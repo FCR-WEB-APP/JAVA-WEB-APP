@@ -18,6 +18,8 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import Swal from 'sweetalert2';  // Make sure you have SweetAlert2 imported
+
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import axios from "axios";
@@ -134,7 +136,18 @@ function DashboardOfSrCR({ loggedInUser }) {
   console.log(name);
   const handleCreateCase = async () => {
     if (newCase.reviewId && newCase.groupName && newCase.division) {
-      // Prepare payload excluding createdDate and updatedDate
+      // Start the Swal loader
+      Swal.fire({
+        title: 'Creating Case...',
+        html: 'Please wait while we process your case.',
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+  
+      // Prepare payload
       const casePayload = {
         caseRefNo: newCase.reviewId,  
         groupName: newCase.groupName,
@@ -154,25 +167,59 @@ function DashboardOfSrCR({ loggedInUser }) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${staticJWTToken}`,  
+              'Authorization': `Bearer ${staticJWTToken}`,
               'username': name
             },
           }
         );
   
         if (response.status === 200) {
-          alert('Case created successfully!');
-          setGroupTasks((prev) => [...prev, response.data.data]); 
+          // Close the modal
+          handleModalClose();
+
+
+
+  
+          // Close the Swal loader and show success after 3 seconds
+          setTimeout(() => {
+            Swal.close();
+            Swal.fire({
+              icon: 'success',
+              title: 'Case Created Successfully',
+              text: 'The case has been created and added.',
+              confirmButtonColor: '#3085d6',
+              timer: 2000,
+            });
+          }, 3000);  // Wait for 3 seconds before showing success
+  
+          setGroupTasks((prev) => [...prev, response.data.data]);
           setNewCase({ reviewId: '', groupName: '', division: '' });
         } else {
-          alert('Failed to create case. Please try again.');
+          Swal.close();
+          Swal.fire({
+            icon: 'error',
+            title: 'Failed to Create Case',
+            text: 'There was an issue creating the case. Please try again.',
+            confirmButtonColor: '#d33',
+          });
         }
       } catch (error) {
+        Swal.close();
         console.error('Error creating case:', error);
-        alert('An error occurred while creating the case.');
+        Swal.fire({
+          icon: 'error',
+          title: 'An Error Occurred',
+          text: 'An error occurred while creating the case. Please try again.',
+          confirmButtonColor: '#d33',
+        });
       }
     } else {
-      alert('Please fill in all fields.');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Missing Fields',
+        text: 'Please fill in all required fields.',
+        confirmButtonColor: '#f27013',
+      });
     }
   };
   
