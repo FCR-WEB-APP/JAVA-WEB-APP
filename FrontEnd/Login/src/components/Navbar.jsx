@@ -1,26 +1,26 @@
-
 import { AppBar, Toolbar, IconButton, Typography, Box } from '@mui/material';
 import { Notifications, AccountCircle } from '@mui/icons-material'; 
 import Sun from "../assets/soundcloud.png";
+
 const Navbar = ({ userName }) => {
   return (
-    <AppBar position="sticky" sx={{ backgroundColor: '#ffffff' }}>
+    <AppBar  position="sticky" sx={{ backgroundColor: '#ffffff'}}>
       <Toolbar className="flex justify-between items-center px-6 py-2">
   
         <Box className="flex items-center">
-          <img
+          {/* <img
             src={Sun}   
             alt="Sun Logo"
-            className="max-w-14"   
-          />
+            className="max-w-4" 
+          /> */}
         </Box>
  
         <Box className="flex items-center justify-center flex-grow">
-          <img
+          {/* <img
             src={Sun}   
             alt="Sun Logo"
-            className="max-w-14"   
-          />
+            className="max-w-4"    
+          /> */}
         </Box>
 
          <Box className="flex items-center space-x-4">
@@ -28,7 +28,6 @@ const Navbar = ({ userName }) => {
             <Notifications fontSize="small" /> 
           </IconButton>
 
- 
           <Box className="flex items-center space-x-2">
             <IconButton color="primary">
               <AccountCircle fontSize="small" />   

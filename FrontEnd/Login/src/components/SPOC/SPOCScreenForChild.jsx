@@ -65,31 +65,96 @@ import {
       setIsAddObligorVisible(false);
     };
   
-    const handleAddObligorToTable = () => {
+    // const handleAddObligorToTable = () => {
+    //   if (obligorId && division && cifId && premId) {
+    //     const newObligor = {
+    //       childReviewId: obligors.length + 1, // Generate a unique ID
+    //       obligorName: obligorId,
+    //       division,
+    //       cifId,
+    //       premId,
+    //     };
+    
+    //     setObligors([...obligors, newObligor]);
+    //     setObligorId("");
+    //     setDivision("");
+    //     setCifId("");
+    //     setPremId("");
+    //     setIsAddObligorVisible(false);
+    
+    //     // SweetAlert2 success effect
+    //     Swal.fire({
+    //       icon: "success",
+    //       title: "Success",
+    //       text: "Obligor added successfully!",
+    //       timer: 2000,
+    //       showConfirmButton: false,
+    //     });
+    //   } else {
+    //     Swal.fire({
+    //       icon: "error",
+    //       title: "Error",
+    //       text: "Please fill all required fields.",
+    //     });
+    //   }
+    // };
+
+
+    const handleAddObligorToTable = async () => {
       if (obligorId && division && cifId && premId) {
+        // Construct the data to send to the backend
         const newObligor = {
-          childReviewId: obligors.length + 1, // Generate a unique ID
-          obligorName: obligorId,
+          obligorName: obligorId, // Adjust this key to match your Obligour entity
           division,
           cifId,
           premId,
         };
     
-        setObligors([...obligors, newObligor]);
-        setObligorId("");
-        setDivision("");
-        setCifId("");
-        setPremId("");
-        setIsAddObligorVisible(false);
+        try {
+          // Send the data to the backend using fetch
+          const response = await fetch("/api/obligour/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${yourJwtToken}`, // Replace with actual token if applicable
+            },
+            body: JSON.stringify(newObligor),
+          });
     
-        // SweetAlert2 success effect
-        Swal.fire({
-          icon: "success",
-          title: "Success",
-          text: "Obligor added successfully!",
-          timer: 2000,
-          showConfirmButton: false,
-        });
+          if (response.ok) {
+            const savedObligor = await response.json();
+    
+            // Update the UI with the new data
+            setObligors([...obligors, { ...savedObligor, childReviewId: obligors.length + 1 }]);
+            setObligorId("");
+            setDivision("");
+            setCifId("");
+            setPremId("");
+            setIsAddObligorVisible(false);
+    
+            // SweetAlert2 success effect
+            Swal.fire({
+              icon: "success",
+              title: "Success",
+              text: "Obligor added successfully!",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } else {
+            const errorText = await response.text();
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: `Failed to add obligor: ${errorText}`,
+            });
+          }
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: `An error occurred: ${error.message}`,
+          });
+        }
       } else {
         Swal.fire({
           icon: "error",
@@ -98,6 +163,7 @@ import {
         });
       }
     };
+    
   
      const [childRows, setChildRows] = useState([]);
   
@@ -604,7 +670,7 @@ import {
                     border: "1px solid #ddd",
                   }}
                 >
-                  Obligor Name
+                  Obligor ID
                 </TableCell>
                 <TableCell
                   sx={{

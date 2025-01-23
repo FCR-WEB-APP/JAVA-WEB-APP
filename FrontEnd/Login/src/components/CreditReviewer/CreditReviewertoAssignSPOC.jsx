@@ -30,6 +30,8 @@ import {
   Card,
 } from "@mui/material";
 import { ExpandLess, ExpandMore, Add as AddIcon, ArrowCircleRightTwoTone } from "@mui/icons-material";
+import axios from 'axios'
+
 import Add from "@mui/icons-material/Add";
 import { useState, useEffect } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -57,43 +59,131 @@ function CreditReviewertoAssignSPOC({ loggedInUser },{initialChildRows = [] }) {
 
   const [obligors, setObligors] = useState([]);
 
-  const [obligorId, setObligorId] = useState("");
+  const [obligourId, setObligorId] = useState("");
 
   const [isObservationModalVisible, setObservationModalVisible] =
     useState(false);
+
+  // const handleAddObligorToTable = () => {
+  //   if (obligorId && division && cifId && premId) {
+  //     const newObligor = {
+  //       childReviewId: obligors.length + 1, // Generate a unique ID
+  //       obligorName: obligorId,
+  //       division,
+  //       cifId,
+  //       premId,
+  //     };
+  
+  //     setObligors([...obligors, newObligor]);
+  //     setObligorId("");
+  //     setDivision("");
+  //     setCifId("");
+  //     setPremId("");
+  //     setIsAddObligorVisible(false);
+  
+  //     // SweetAlert2 success effect
+  //     Swal.fire({
+  //       icon: "success",
+  //       title: "Success",
+  //       text: "Obligor added successfully!",
+  //       timer: 2000,
+  //       showConfirmButton: false,
+  //     });
+  //   } else {
+  //     Swal.fire({
+  //       icon: "error",
+  //       title: "Error",
+  //       text: "Please fill all required fields.",
+  //     });
+  //   }
+  // };
+
   const handleAddObligor = () => {
     setIsAddObligorVisible(!isAddObligorVisible);
   };
-
+  
   const handleCloseModal = () => {
     setIsAddObligorVisible(false);
   };
 
-  const handleAddObligorToTable = () => {
-    if (obligorId && division && cifId && premId) {
+  const decodeJWT = (token) => {
+    if (!token || token.split(".").length !== 3) {
+      throw new Error("Invalid token format");
+    }
+    const payload = token.split(".")[1];  // Get the payload part
+    const decodedPayload = JSON.parse(atob(payload));  // Decode from Base64 to 
+    console.log(decodedPayload);
+    return decodedPayload;
+  };
+  const token = localStorage.getItem('Bearer');
+  
+  const decodedToken = decodeJWT(token);
+  const name = decodedToken.sub;
+  
+  const handleAddObligorToTable = async () => {
+    if (obligourId && division && cifId && premId) {
       const newObligor = {
-        childReviewId: obligors.length + 1, // Generate a unique ID
-        obligorName: obligorId,
-        division,
-        cifId,
-        premId,
+        obligourId: obligourId,
+        divisionName: division,
+        cifId: cifId,
+        premId: premId,
+        childReviewId: null,
+        assignedTo: null,
+        status: null,
+        activityLevel: null,
+        actions: null,
       };
   
-      setObligors([...obligors, newObligor]);
-      setObligorId("");
-      setDivision("");
-      setCifId("");
-      setPremId("");
-      setIsAddObligorVisible(false);
+      try {
+
   
-      // SweetAlert2 success effect
-      Swal.fire({
-        icon: "success",
-        title: "Success",
-        text: "Obligor added successfully!",
-        timer: 2000,
-        showConfirmButton: false,
-      });
+        const response = await axios.post("http://localhost:1000/api/obligour/add", newObligor, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "username": name,
+          },
+        });
+        console.log(response);
+  
+        // Add returned data to local obligors array
+        const savedObligor = response.data;
+        setObligors([
+          ...obligors,
+          { 
+            ...savedObligor, 
+            // childReviewId: obligors.length + 1, 
+            childReviewId: Math.floor(Math.random() * (999 - 500 + 1)) + 500,
+            division: savedObligor.divisionName, 
+          },
+        ]);
+  
+        // Reset input fields
+        setObligorId("");
+        setDivision("");
+        setCifId("");
+        setPremId("");
+        
+        // Close modal before showing Swal
+        handleCloseModal();
+  
+        // SweetAlert2 success effect
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Obligor added successfully!",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        handleCloseModal(); // Close modal on error
+  
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.response?.data?.message || "Failed to add obligor.",
+        });
+      }
     } else {
       Swal.fire({
         icon: "error",
@@ -102,9 +192,49 @@ function CreditReviewertoAssignSPOC({ loggedInUser },{initialChildRows = [] }) {
       });
     }
   };
+  
+  
+  
+  
 
    const [childRows, setChildRows] = useState([]);
 
+
+  // const handleClarification = (obligor) => {
+  //   Swal.fire({
+  //     title: "Are you sure?",
+  //     text: `You are about to send clarification for Obligor: ${obligor.obligorName}.`,
+  //     icon: "warning",
+  //     showCancelButton: true,
+  //     confirmButtonColor: "#3085d6",
+  //     cancelButtonColor: "#d33",
+  //     confirmButtonText: "Yes, clarify!",
+  //   }).then((result) => {
+  //     if (result.isConfirmed) {
+  //       // Add obligor to Work on Child Issue table, leaving other fields empty
+  //       const newChildRow = {
+  //         childReviewId: obligor.childReviewId,
+  //         obligourId: obligor.obligourId,
+  //         premId: obligor.premId, // Empty
+  //         cifId: obligor.cifId,  // Empty
+  //         division: obligor.divisionName, // Empty
+  //         reviewStatus: "in-Progress", // Empty
+  //         createdBy:loggedInUser, // Empty
+  //       };
+  
+  //       // Add the new row to the table
+  //       setChildRows((prevRows) => [...prevRows, newChildRow]);
+  
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Clarification Sent!",
+  //         text: `Clarification sent for Obligor: ${obligor.obligorName}.`,
+  //         timer: 2000,
+  //         showConfirmButton: false,
+  //       });
+  //     }
+  //   });
+  // };
   const handleClarification = (obligor) => {
     Swal.fire({
       title: "Are you sure?",
@@ -116,30 +246,59 @@ function CreditReviewertoAssignSPOC({ loggedInUser },{initialChildRows = [] }) {
       confirmButtonText: "Yes, clarify!",
     }).then((result) => {
       if (result.isConfirmed) {
-        // Add obligor to Work on Child Issue table, leaving other fields empty
+        // Prepare newChildRow object
         const newChildRow = {
+          obligourId: obligor.obligourId,
           childReviewId: obligor.childReviewId,
-          obligorName: obligor.obligorName,
-          premId: obligor.premId, // Empty
-          cifId: obligor.cifId,  // Empty
-          division: obligor.division, // Empty
-          reviewStatus: "in-Progress", // Empty
-          createdBy:loggedInUser, // Empty
+          premId: obligor.premId, 
+          cifId: obligor.cifId,  
+          //division: obligor.divisionName, 
+          //reviewStatus: "in-Progress",
+          divisionName: obligor.divisionName,
+          status: "in-Progress",
+          createdBy: loggedInUser,
+          assignedTo: null,
+          caseRefNo: null,
+          activityLevel: null,
+          
         };
+      //  const jwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6IlNwb2MgLFNyLkNyZWRpdFJldmlld2VyLCBDcmVkaXRSZXZpZXdlcixIZWFkT2ZGY3IiLCJzdWIiOiJMb2tlc2giLCJpYXQiOjE3Mzc0Nzk2MTgsImV4cCI6MTczNzQ4MzIxOH0.k76QW1fbo1OIbfTKS8a_6d774BnFNcIwiVnSYu5wSQg";
+        // Axios POST request
+        axios
+          .post("http://localhost:1000/api/childReview/add", newChildRow, {
+            headers: {
+          "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+             "username":name,
+            },
+          })
+          .then((response) => {
+            // Update the childRows state with the new row
+            setChildRows((prevRows) => [...prevRows, response.data]);
   
-        // Add the new row to the table
-        setChildRows((prevRows) => [...prevRows, newChildRow]);
-  
-        Swal.fire({
-          icon: "success",
-          title: "Clarification Sent!",
-          text: `Clarification sent for Obligor: ${obligor.obligorName}.`,
-          timer: 2000,
-          showConfirmButton: false,
-        });
+            Swal.fire({
+              icon: "success",
+              title: "Clarification Sent!",
+              text: `Clarification sent for Obligor: ${obligor.obligorName}.`,
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          })
+          .catch((error) => {
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: error.response?.data?.message || "Failed to send clarification.",
+            });
+          });
       }
     });
   };
+  
+
+  
+  
+  
   const handleDelete = (obligor) => {
     setObligors(
       obligors.filter((item) => item.childReviewId !== obligor.childReviewId)
@@ -221,14 +380,18 @@ function CreditReviewertoAssignSPOC({ loggedInUser },{initialChildRows = [] }) {
     setSelectedOption(event.target.value);
   };
 
-  const handleModalOpen = () => {
-    setOpenModal(true);
-  };
+    const handleModalOpen = () => {
+      setOpenModal(true);
+    };
 
-  const handleModalClose = () => {
-    setOpenModal(false);
-  };
+    const handleModalClose = () => {
+      setOpenModal(false);
+      document.getElementById("addViewButton").focus();  // Focus on the button after modal is closed
 
+    };
+
+ 
+  
   const handleQuerySubmit = () => {
     setQueryDetails([
       ...queryDetails,
@@ -237,6 +400,66 @@ function CreditReviewertoAssignSPOC({ loggedInUser },{initialChildRows = [] }) {
     setQueryText("");
     handleModalClose();
   };
+
+  // const [lastQueryId, setLastQueryId] = useState(0); // Initial value for queryId
+
+
+  
+  // const handleQuerySubmit = (childReviewId) => {
+  //   // Increment lastQueryId for the next query
+  //   const newQueryId = lastQueryId + 1;
+
+  //   const newQuery = {
+  //     queryId: newQueryId,
+  //     childReviewId: childReviewId,
+  //     queryDescription: queryText,
+  //     response: null, // Empty initially
+  //     caseRefNo: null, // Setting other fields as null
+  //     assignedTo: null,
+  //     status: null,
+  //   };
+
+  //   const jwtToken =
+  //     "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6IlNwb2MgLFNyLkNyZWRpdFJldmlld2VyLCBDcmVkaXRSZXZpZXdlcixIZWFkT2ZGY3IiLCJzdWIiOiJMb2tlc2giLCJpYXQiOjE3Mzc0Nzk2MTgsImV4cCI6MTczNzQ4MzIxOH0.k76QW1fbo1OIbfTKS8a_6d774BnFNcIwiVnSYu5wSQg";
+
+  //   axios
+  //     .post("http://localhost:1000/api/query/add", newQuery, {
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${jwtToken}`,
+  //         "username":"Lokesh",
+  //       },
+  //     })
+  //     .then((response) => {
+  //       // Update lastQueryId and add new query to state
+  //       setLastQueryId(newQueryId);
+  //       setQueryDetails((prevDetails) => [
+  //         ...prevDetails,
+  //         {
+  //           queryText,
+  //           createdOn: new Date().toLocaleString(),
+  //           createdBy: loggedInUser,
+  //         },
+  //       ]);
+  //       setQueryText("");
+
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Query Submitted!",
+  //         text: `Query with ID ${response.data.queryId} has been successfully submitted.`,
+  //         timer: 2000,
+  //         showConfirmButton: false,
+  //       });
+  //     })
+  //     .catch((error) => {
+  //       Swal.fire({
+  //         icon: "error",
+  //         title: "Error",
+  //         text: error.response?.data?.message || "Failed to submit the query.",
+  //       });
+  //     });
+  // };
+  
 
   const handleDelete1 = (index) => {
     const updatedQueries = [...queryDetails];
@@ -998,12 +1221,12 @@ const handleClose = () => {
                     <Grid item xs={6}>
                       <TextField
                         label="Obligor"
-                        value={obligorId}
+                        value={obligourId}
                         onChange={(e) => setObligorId(e.target.value)}
                         fullWidth
                         size="small"
-                        error={!obligorId} // Validation
-                        helperText={!obligorId ? "Obligor is required" : ""}
+                        error={!obligourId} // Validation
+                        helperText={!obligourId ? "Obligor is required" : ""}
                       />
                     </Grid>
                     <Grid item xs={6}>
@@ -1051,7 +1274,7 @@ const handleClose = () => {
                         variant="contained"
                         fullWidth
                         onClick={() => {
-                          if (obligorId && division && cifId && premId) {
+                          if (obligourId && division && cifId && premId) {
                             handleAddObligorToTable();
                           } else {
                             alert("Please fill all required fields.");
@@ -1079,7 +1302,7 @@ const handleClose = () => {
       <TableRow>
         <TableCell>Child Review ID</TableCell>
         <TableCell>Division</TableCell>
-        <TableCell>Obligor Name</TableCell>
+        <TableCell>Obligor ID</TableCell>
         <TableCell>PREM ID</TableCell>
         <TableCell>CIF ID</TableCell>
         <TableCell>Send For Clarification</TableCell>
@@ -1092,8 +1315,8 @@ const handleClose = () => {
       {obligors.map((obligor, index) => (
         <TableRow key={index}>
           <TableCell>{obligor.childReviewId}</TableCell>
-          <TableCell>{obligor.division}</TableCell>
-          <TableCell>{obligor.obligorName}</TableCell>
+          <TableCell>{obligor.divisionName}</TableCell>
+          <TableCell>{obligor.obligourId}</TableCell>
           <TableCell>{obligor.premId}</TableCell>
           <TableCell>{obligor.cifId}</TableCell>
           
@@ -1315,6 +1538,7 @@ const handleClose = () => {
       {/********  Field Work Stage ******* */}
 
      {/********   Response & Remediation Stage *********/} 
+
 <Box
   className="mt-6 p-4"
   sx={{
@@ -1386,7 +1610,7 @@ const handleClose = () => {
                   border: "1px solid #ddd",
                 }}
               >
-                Obligor Name
+                Obligour ID
               </TableCell>
               <TableCell
                 sx={{
@@ -1413,7 +1637,7 @@ const handleClose = () => {
                   border: "1px solid #ddd",
                 }}
               >
-                Division
+                Division Name
               </TableCell>
               <TableCell
                 sx={{
@@ -1466,7 +1690,7 @@ const handleClose = () => {
                   {row.childReviewId}
                 </TableCell>
                 <TableCell sx={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.obligorName}
+                  {row.obligourId}
                 </TableCell>
                 <TableCell sx={{ border: "1px solid #ddd", padding: "8px" }}>
                   {row.premId}
@@ -1475,10 +1699,10 @@ const handleClose = () => {
                   {row.cifId}
                 </TableCell>
                 <TableCell sx={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.division}
+                  {row.divisionName}
                 </TableCell>
                 <TableCell sx={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {row.reviewStatus}
+                  {row.status}
                 </TableCell>
                 <TableCell sx={{ border: "1px solid #ddd", padding: "8px" }}>
                   {row.createdBy}

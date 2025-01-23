@@ -546,7 +546,6 @@ import {
                   sx={{ backgroundColor: "white" }}
                 >
                   <MenuItem value="User A">Submit to Head of FCR</MenuItem>
-                  <MenuItem value="User B">User B</MenuItem>
                 </TextField>
               </>
             )}
@@ -711,7 +710,7 @@ import {
   </Typography>
 </Box>
 
-  {/* Response & Remediation Stage */}\
+  {/* Response & Remediation Stage */}
   {planningValue === "Planning Completed" && (
 
   <Box
