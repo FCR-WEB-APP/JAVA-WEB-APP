@@ -35,10 +35,10 @@ function DashboardOfSrCR({ loggedInUser }) {
 
   const [selectedTask, setSelectedTask] = useState(null);
   const [groupTasks, setGroupTasks] = useState([
-    { id: 1, reviewId: '12345', childReviewId: '67890', division: 'Mashreq', groupName: 'Fixed', status: 'Active', assignedTo: 'Santosh', role: 'Sr. Credit Reviewer', createdBy: 'Sr. Credit Reviewer' },
+    { id: 1, reviewId: '12345', childReviewId: '67890', division: 'Bank', groupName: 'Fixed', status: 'Active', assignedTo: 'Santosh', role: 'Sr. Credit Reviewer', createdBy: 'Sr. Credit Reviewer' },
     { id: 2, reviewId: '54321', childReviewId: '98765', division: 'Finance', groupName: 'T&M', status: 'Pending', assignedTo: 'Tejas', role: 'Credit Reviewer', createdBy: 'Sr. Credit Reviewer' },
     { id: 3, reviewId: '13579', childReviewId: '24680', division: 'Assets', groupName: 'T&M', status: 'In Progress', assignedTo: 'Mayur', role: 'SPOC', createdBy: 'Sr. Credit Reviewer' },
-    { id: 4, reviewId: '24680', childReviewId: '13579', division: 'Mashreq', groupName: 'Fixed', status: 'Completed', assignedTo: 'Lokesh', role: 'Head Of FCR', createdBy: 'Sr. Credit Reviewer' },
+    { id: 4, reviewId: '24680', childReviewId: '13579', division: 'Bank', groupName: 'Fixed', status: 'Completed', assignedTo: 'Lokesh', role: 'Head Of FCR', createdBy: 'Sr. Credit Reviewer' },
     { id: 5, reviewId: '11223', childReviewId: '44556', division: 'AMBEQ', groupName: 'Eidiko', status: 'Active', assignedTo: 'Pilli', role: 'Credit Reviewer', createdBy: 'Sr. Credit Reviewer' },
   ]);
   const [myTasks, setMyTasks] = useState([]);
