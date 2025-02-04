@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+.swal-on-top {
+    z-index: 9999 !important; /* Higher than Material-UI Dialog */
+}
+
+.swal-backdrop-on-top {
+    z-index: 9998 !important; /* Ensure it covers the background properly */
+}

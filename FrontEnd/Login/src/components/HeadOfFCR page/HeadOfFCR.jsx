@@ -17,13 +17,29 @@ import {
     TableHead,
     TableRow,
     InputLabel,
-    Select
+    Select,
+    DialogActions,
+Card,
+DialogContent,
+DialogTitle,
+Dialog,
+ 
+ 
   } from "@mui/material";
   import { ExpandMore, ExpandLess } from "@mui/icons-material";
   import FolderIcon from "@mui/icons-material/Folder";
   import { useState, useEffect} from "react";
   import DeleteIcon from "@mui/icons-material/Delete";
+  
+ 
+  import CancelIcon from "@mui/icons-material/Cancel";
+  import PreviewIcon from '@mui/icons-material/Preview';
+
+
+
   import { useNavigate } from 'react-router-dom';
+  import Swal from "sweetalert2";
+  import axios from "axios";
   function HeadOfFCR({loggedInUser}) {
 
         
@@ -330,7 +346,262 @@ import {
 
   {/************ Additional System Info *********/ }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//  First modifications
+   const [groupTasks, setGroupTasks] = useState([]);
+     const [selectedTask, setSelectedTask] = useState(null);
+     const [myTasks, setMyTasks] = useState([]);
+     const [isDialogOpen, setIsDialogOpen] = useState(false);
+     const [formValues, setFormValues] = useState({
+       reviewId: '',
+       groupName: '',
+       division: '',
+     });
+
+  const staticJWTToken = localStorage.getItem('Bearer');
+
+  const decodeJWT = (token) => {
+    if (!token || token.split(".").length !== 3) {
+      throw new Error("Invalid token format");
+    }
+    const payload = token.split(".")[1];  // Get the payload part
+    const decodedPayload = JSON.parse(atob(payload));  // Decode from Base64 to 
+    console.log(decodedPayload);
+    return decodedPayload;
+  };
   
+  const decodedToken = decodeJWT(staticJWTToken);
+  const name = decodedToken.sub;
+  const roles = decodedToken.roles;
+  console.log("name is ",name);
+  const roleDisplay = Array.isArray(roles) ? roles.join(', ') : roles;
+  console.log("roles are :",roles);
+
+
+  
+      
+       
+  const handlePlayClick = async (task) => {
+    // Prepare the payload based on the clicked task and your logic.
+    const payload = {
+      caseRefNo: task.caseRefNo, // Pass the caseRefNo to identify the task
+      actions: "Submit to Sr.CreditReviewer", // This is the action when clicking
+      status: task.status, // Keep the existing status
+      assignedTo: "", // Update the assigned_to value
+      activityLevel:"Sr.CreditReviewer",
+      updatedDate: new Date().toISOString(), // Set current date as updated date
+      planing: task.planing, // Keep the existing planing
+      fieldWork: task.fieldWork, // Keep the existing fieldWork
+    };
+  
+    // Send the payload to the backend to update the task
+    try {
+      const response = await axios.post(
+        'http://localhost:1001/api/submitTaskLeader', // API endpoint to update task
+        payload,
+        {
+          headers: {
+            'Authorization': `Bearer ${staticJWTToken}`,
+            'username': name,
+          },
+        }
+      );
+  
+      if (response.status === 200) {
+        // On success, update the frontend task and move it to 'My Task'
+        navigate("/dashtoAssign");
+        setGroupTasks((prevTasks) => prevTasks.filter(t => t.caseRefNo !== task.caseRefNo)); // Remove from group tasks
+        setMyTasks((prevTasks) => [...prevTasks, { ...task, assignedTo: "Sr.CreditReviewer" }]); // Add to my tasks
+        setMyTasks([task]);
+        setSelectedTask('my');
+        Swal.fire({
+          icon: 'success',
+          title: 'Task Updated',
+          text: 'The task has been successfully updated.',
+          confirmButtonColor: '#3085d6',
+          timer: 2000,
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed to Update Task',
+          text: 'There was an issue updating the task.',
+          confirmButtonColor: '#d33',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'An Error Occurred',
+        text: 'An error occurred while updating the task. Please try again.',
+        confirmButtonColor: '#d33',
+      });
+    }
+  };
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  // Second Modificaiton
+  
+  const [open, setOpen] = useState(false);
+  const [fileIndex, setFileIndex] = useState(null);
+      const [file, setFile] = useState(null);
+
+    const handleClose = () => {
+        setOpen(false);
+      }; 
+      const handleDeleteFileForObligor = (index) => {
+        const newFiles = uploadedFiles.filter((_, i) => i !== index);
+        setUploadedFiles(newFiles);
+    };
+
+        
+        const handleFileUploadForObligor = (file) => {
+          if (file) {
+              setUploadedFiles((prevFiles) => [
+                  ...prevFiles,
+                  { fileName: file.name, fileSize: file.size },
+              ]);
+              uploadFile(file);
+          }
+      };
+      const handleClickOpen = (index) => {
+        setFileIndex(index);
+        setOpen(true);
+      };
+
+      const handleSubmitToDashboard = (event) => {
+        event.preventDefault();
+
+        // Validation for file upload
+        if (
+            (planningValue === "Planning Completed" || planningValue === "Planning in-Progress") &&
+            !file
+        ) {
+            Swal.fire({
+                icon: "warning",
+                title: "Upload Required",
+                text: "Please upload a document before submitting.",
+            });
+            return;
+        }
+
+      
+
+        // Show loader and simulate submission
+        if (file) {
+            uploadFile(file);
+        }
+
+        Swal.fire({
+            title: "Submitting...",
+            text: "Please wait while we process your submission.",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            timer: 3000,
+            timerProgressBar: true,
+        }).then(() => {
+            // After the loader, show success message
+            Swal.fire({
+                icon: "success",
+                title: "Success!",
+                text: "Your form has been submitted successfully!",
+            });
+
+            setPlanningValue("");
+            setAssignee("");
+            setFile(null);
+
+            navigate("/dashboardfcr");
+        });
+    };
+
+   const handleFileDelete = () => {
+      setFile(null);
+    };
+    const handleFileChange = (event) => {
+      setFile(event.target.files[0]);
+    };
+  
+    
+
+    const uploadFile = async (file) => {
+      const uploadFileId = Date.now(); // Example of using current timestamp for unique ID
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+          const response = await axios.post(
+              `http://localhost:1001/api/upload/addFile/${uploadFileId}`,
+              formData,
+              {
+                  headers: {
+                      'Content-Type': 'multipart/form-data',
+                      'Authorization': `Bearer ${staticJWTToken}`,
+                      'username': name
+                  },
+              }
+          );
+
+          if (response.status === 201) {
+              console.log('File uploaded successfully:', response.data);
+              // Handle success (add the uploaded file details to the state)
+              setUploadedFiles((prevFiles) => [
+                  ...prevFiles,
+                  { fileName: file.name, fileSize: file.size, fileUrl: response.data.fileUrl } // Assuming the response contains a URL for the uploaded file
+              ]);
+          }
+      } catch (error) {
+          console.error('Error uploading file:', error);
+          // Handle error (e.g., show error message)
+          setOpen(false);
+          Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: "There was an error uploading the file. Please try again.",
+          });
+      }
+  };
+  
+
+ 
   return (
        <div>
       <Box className="p-4 border border-orange-500 rounded-lg bg-white shadow-md">
@@ -397,27 +668,119 @@ import {
       </TextField>
 
       {/* Container for right-aligned buttons */}
-      <Box className="flex items-center space-x-2 justify-end w-full sm:w-auto">
-        <Button
-          variant="contained"
-          className="bg-orange-500 text-white hover:bg-orange-600"
-          onClick={sublitToCreditReviewer}
-        >
-          Submit
-        </Button>
-        <IconButton
-          sx={{
-            backgroundColor: "#1976d2",
-            color: "white",
-            "&:hover": { backgroundColor: "#ed7315" },
-          }}
-        >
-          <FolderIcon />
-        </IconButton>
-      </Box>
-    </Box>
-  </Box>
+  
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: '#f27013',
+                '&:hover': {
+                  backgroundColor: '#d95b0f',
+                },
+              }}
+              onClick={handleSubmitToDashboard}
+            >
+              Submit
+            </Button>
 
+            <Box>
+      <PreviewIcon 
+        onClick={handleClickOpen} 
+        sx={{ cursor: 'pointer', color: '#f27013', '&:hover': { color: '#e0600d' } }} 
+      />
+      {/* Dialog for File Upload */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Upload Files</DialogTitle>
+        <DialogContent>
+          <Card className="p-4" style={{ width: '400px' }}>
+          <Button
+  variant="outlined"
+  component="label"
+  sx={{
+    borderColor: '#f27013',
+    color: '#f27013',
+    '&:hover': {
+      borderColor: '#e0600d',
+      color: '#f27013',
+    }
+  }}
+>
+  Upload File
+  <input
+    type="file"
+    onChange={(e) => handleFileUploadForObligor(e.target.files[0])}
+    style={{ display: 'none' }}
+  />
+</Button>
+
+
+            {/* Table to list uploaded files */}
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>File Name</TableCell>
+                  <TableCell>File Size</TableCell>
+                  <TableCell>Actions</TableCell> {/* Added Actions column for delete */}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {uploadedFiles.map((file, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{file.fileName}</TableCell>
+                    <TableCell>{(file.fileSize / 1024).toFixed(2)} KB</TableCell>
+                    <TableCell>
+                      <DeleteIcon 
+                        style={{ cursor: 'pointer', color: 'red' }} 
+                        onClick={() => handleDeleteFileForObligor(index)} 
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </DialogContent>
+        <DialogActions>      
+
+          <Button onClick={handleClose} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  
+        
+          </Box>
+
+          <Box
+            className="flex justify-end"
+            sx={{ marginTop: 4 }}
+          >
+           <Button
+  variant="contained"
+  className="text-white"
+  onClick={handleSaveAndClose}
+  sx={{
+    backgroundColor: '#f27013',
+    '&:hover': {
+      backgroundColor: '#d95b0f',
+    },
+  }}
+>
+  Save & Close
+</Button>
+
+          </Box>
+                  
+          
+        </Box>
+      </Box>
+  
+      </Box>
+ 
+ 
+   
+ 
+  
   {/* Save & Close Button */}
   <Box className="flex justify-end mt-4">
     <Button
@@ -428,9 +791,9 @@ import {
       Save & Close
     </Button>
   </Box>
-</Box>
+ 
 
-</Box>
+ 
 <Box
   className="mt-6 p-4"
   sx={{ backgroundColor: "#f5f5f5", borderRadius: "8px" }}

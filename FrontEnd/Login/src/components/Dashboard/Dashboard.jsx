@@ -14,15 +14,20 @@ import {
   Select,
   MenuItem,
   Modal,
-  Box
+  Box,
+  TablePagination
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import Swal from 'sweetalert2';  // Make sure you have SweetAlert2 imported
-
+import { useDispatch } from 'react-redux';
+import { setCaseData } from '../features/caseSlice';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import axios from "axios";
+
+
+
 function DashboardOfSrCR({ loggedInUser }) {
 
   const navigate = useNavigate();
@@ -40,41 +45,12 @@ function DashboardOfSrCR({ loggedInUser }) {
   const [groupTasks, setGroupTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  // Fetch group tasks from the backend
-  const fetchGroupTasks = async () => {
-    try {
-      const role = 'Sr. Credit Reviewer';
-      const response = await axios.get(`/api/tasks/group-tasks?role=${role}`);
-      const tasks = Array.isArray(response.data) 
-        ? response.data.map((task) => ({
-            id: task.caseRefNo || '',
-            reviewId: task.caseRefNo || '',
-            childReviewId: '',
-            division: task.divisionName || '',
-            groupName: task.groupName || '',
-            status: task.status || '',
-            assignedTo: task.assignedTo || '',
-            role: task.role || '',
-            createdDate: task.createdDate || '',
-          }))
-        : [];
-      setGroupTasks(tasks);
-    } catch (error) {
-      console.error('Error fetching group tasks:', error);
-    }
-  };
-  
-  useEffect(() => {
-    fetchGroupTasks();
-  }, []);
- 
-
   const [myTasks, setMyTasks] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formValues, setFormValues] = useState({
-    reviewId: '',
+    caseRefNo: '',
     groupName: '',
-    division: '',
+    divisionName: '',
   });
 
   const handleRefresh = () => {
@@ -85,10 +61,7 @@ function DashboardOfSrCR({ loggedInUser }) {
     setSelectedTask(taskType);
   };
 
-  const handlePlayClick = (task) => {
-    setMyTasks([task]);
-    setSelectedTask('my');
-  };
+
 
   const handleDialogOpen = () => {
     setIsModalOpen(true);
@@ -114,9 +87,12 @@ function DashboardOfSrCR({ loggedInUser }) {
   const handleModalOpen = () => setIsModalOpen(true);
   const handleModalClose = () => setIsModalOpen(false)
   const [newCase, setNewCase] = useState({
-    reviewId: "",
+    caseRefNo: "",
     groupName: "",
-    division: "",
+    divisionName: "",
+    // caseRefNo: newCase.reviewId,  
+    // groupName: newCase.groupName,
+    // divisionName: newCase.division,
   });
 
   const staticJWTToken = localStorage.getItem('Bearer');
@@ -133,10 +109,69 @@ function DashboardOfSrCR({ loggedInUser }) {
   
   const decodedToken = decodeJWT(staticJWTToken);
   const name = decodedToken.sub;
-  console.log(name);
+  const roles = decodedToken.roles;
+  console.log("name is ",name);
+  const roleDisplay = Array.isArray(roles) ? roles.join(', ') : roles;
+  console.log("roles are :",roles);
+    const fetchGroupTasks = async () => {
+    try {
+       const rolesParam = roles;  
+       const response = await axios.get('http://localhost:1001/api/GroupTask', {
+        params: {
+          role: rolesParam, 
+        },
+        headers: {
+          'Authorization': `Bearer ${staticJWTToken}`,  
+          'username': name,   
+        },
+        
+      });
+  
+       const tasks = Array.isArray(response.data.result)
+        ? response.data.result.map((task) => ({
+            id: task.caseRefNo || '',
+            caseRefNo: task.caseRefNo || '',
+            childReviewId: task.childReviewId || '',
+            divisionName: task.divisionName || '',
+            groupName: task.groupName || '',
+            status: task.status || '',
+            assignedTo: task.assignedTo || '',
+            role: task.role || '',
+            createdDate: task.createdDate || '',
+          }))
+        : [];
+       setGroupTasks(tasks);
+       console.log("Task of Group task :", tasks);
+    } catch (error) {
+      console.error('Error fetching group tasks:', error);
+     }
+  };
+  
+   useEffect(() => {
+     fetchGroupTasks();
+   }, []);
+   const dispatch = useDispatch();
+   
+
+   const [createdDates, setCreatedDates] = useState({}); // Store created dates for each case
+
+
+   const [page, setPage] = useState(0);
+const [rowsPerPage, setRowsPerPage] = useState(10);
+
+// Handle page change
+const handleChangePage = (event, newPage) => {
+  setPage(newPage);
+};
+
+// Handle rows per page change
+const handleChangeRowsPerPage = (event) => {
+  setRowsPerPage(parseInt(event.target.value, 10));
+  setPage(0);
+};
   const handleCreateCase = async () => {
+
     if (newCase.reviewId && newCase.groupName && newCase.division) {
-      // Start the Swal loader
       Swal.fire({
         title: 'Creating Case...',
         html: 'Please wait while we process your case.',
@@ -147,17 +182,16 @@ function DashboardOfSrCR({ loggedInUser }) {
         }
       });
   
-      // Prepare payload
       const casePayload = {
         caseRefNo: newCase.reviewId,  
         groupName: newCase.groupName,
         divisionName: newCase.division,
-        activityLevel: null,
-        status: "Pending", 
-        assignedTo: "Unassigned", 
-        planing: null,
-        fieldWork: null,
-        actions: null,
+        activityLevel: roleDisplay,
+        status: "inProgress", 
+        assignedTo: "", 
+        planing: "inProgress",
+        fieldWork: "inProgress",
+        actions: "Case Created",
       };
   
       try {
@@ -173,14 +207,23 @@ function DashboardOfSrCR({ loggedInUser }) {
           }
         );
   
+        // console.log("Sending Case Payload:", casePayload);
+        // console.log("Received Response:", response.data);
+
         if (response.status === 200) {
           // Close the modal
           handleModalClose();
-
-
-
+          const caseData = response.data.data;
+          console.log("checking case data: ", caseData)
+          dispatch(setCaseData(caseData)); // Store in Redux
+          const currentDate = new Date().toLocaleString();
+          setCreatedDates(prev => ({
+            ...prev,
+            [response.data.data.id]: currentDate // Assume `response.data.data.id` is the case ID
+          }));
   
-          // Close the Swal loader and show success after 3 seconds
+
+           // Close the Swal loader and show success after 3 seconds
           setTimeout(() => {
             Swal.close();
             Swal.fire({
@@ -193,7 +236,11 @@ function DashboardOfSrCR({ loggedInUser }) {
           }, 3000);  // Wait for 3 seconds before showing success
   
           setGroupTasks((prev) => [...prev, response.data.data]);
+          //dispatch(setCaseData(response.data.data));
+
+          // Clear form
           setNewCase({ reviewId: '', groupName: '', division: '' });
+ 
         } else {
           Swal.close();
           Swal.fire({
@@ -224,8 +271,77 @@ function DashboardOfSrCR({ loggedInUser }) {
   };
   
 
-  
 
+
+
+
+
+
+  // const handlePlayClick = (task) => {
+  //   setMyTasks([task]);
+  //   setSelectedTask('my');
+  // };
+
+  const handlePlayClick = async (task) => {
+    if(!task){
+      return null;
+    }
+    const payload = {
+      caseRefNo: task.caseRefNo, 
+      actions: "Submit to Sr.CreditReviewer", 
+      status: task.status, 
+      assignedTo: name,  
+      activityLevel:"Sr.CreditReviewer",
+      updatedDate: new Date().toISOString(), 
+      planing: task.planing,  
+      fieldWork: task.fieldWork, 
+    };
+
+
+    try {
+      const response = await axios.put(
+        'http://localhost:1000/api/SubmitTaskLeader', 
+        payload,
+        {
+          headers: {
+            'Authorization': `Bearer ${staticJWTToken}`,
+            'username': name,
+          },
+        }
+      );
+  
+      if (response.status === 200) {
+        setGroupTasks((prevTasks) => prevTasks.filter(t => t.caseRefNo !== task.caseRefNo)); 
+        setMyTasks((prevTasks) => [...prevTasks, { ...task, assignedTo: "Sr.CreditReviewer" }]);  
+        setMyTasks([task]);
+        setSelectedTask('my');
+        console.log("task :" , task);
+        Swal.fire({
+          icon: 'success',
+          title: 'Task Updated',
+          text: 'The task has been successfully updated.',
+          confirmButtonColor: '#3085d6',
+          timer: 2000,
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed to Update Task',
+          text: 'There was an issue updating the task.',
+          confirmButtonColor: '#d33',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'An Error Occurred',
+        text: 'An error occurred while updating the task. Please try again.',
+        confirmButtonColor: '#d33',
+      });
+    }
+  };
+  
   return (
     <div className="p-4">
       <div className="bg-gray-100 p-6 rounded-lg">
@@ -276,95 +392,119 @@ function DashboardOfSrCR({ loggedInUser }) {
           </Button>
         </div>
         <div className="mt-6">
-          {selectedTask === 'group' && (
-            <TableContainer component={Paper}>
-              <Table>
-              <TableHead>
-                  <TableRow>
-                  <TableCell>Review ID</TableCell>
-                    <TableCell>ChildReview ID</TableCell>
-                    <TableCell>Issue ID</TableCell>
-                    <TableCell>Track Issue ID</TableCell>
-                    <TableCell>Group Name</TableCell>
-                    <TableCell>Division</TableCell>
-                    <TableCell>Current Status</TableCell>
-                    <TableCell>Assigned To</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Created Date</TableCell>
-                  </TableRow>
-                </TableHead>
+        {selectedTask === "group" && (
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Start Case</TableCell>
+              <TableCell>Case Ref No.</TableCell>
+              <TableCell>ChildReview ID</TableCell>
+              <TableCell>Issue ID</TableCell>
+              <TableCell>Track Issue ID</TableCell>
+              <TableCell>Group Name</TableCell>
+              <TableCell>Division</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Assigned To</TableCell>
+              <TableCell>Activity Level</TableCell>
+              <TableCell>Created Date</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {groupTasks
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((task) => (
+                <TableRow key={task.id}>
+                  <TableCell>
+                    <PlayArrowIcon
+                      className="text-green-500 cursor-pointer"
+                      onClick={() => handlePlayClick(task)}
+                    />
+                  </TableCell>
+                  <TableCell>{task.caseRefNo}</TableCell>
+                  <TableCell>{task.childReviewId}</TableCell>
+                  <TableCell>{task.issueId}</TableCell>
+                  <TableCell>{task.trackIssueId}</TableCell>
+                  <TableCell>{task.groupName}</TableCell>
+                  <TableCell>{task.divisionName}</TableCell>
+                  <TableCell>{task.status}</TableCell>
+                  <TableCell>{task.assignedTo}</TableCell>
+                  <TableCell>{roleDisplay}</TableCell>
+                  <TableCell>{createdDates[task.reviewId]}</TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+        {/* Pagination Component */}
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={groupTasks.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </TableContainer>
+    )}
 
-                <TableBody>
-                  {groupTasks.map((task) => (
-                    <TableRow key={task.id}>
-                      <TableCell>
-                        <PlayArrowIcon
-                          className="text-green-500 cursor-pointer"
-                          onClick={() => handlePlayClick(task)}
-                        />
-                      </TableCell>
-                      <TableCell>{task.reviewId}</TableCell>
-                      <TableCell>{task.childReviewId}</TableCell>
-                      <TableCell>{task.issueId}</TableCell>
-                      <TableCell>{task.trackIssueId}</TableCell>
-                      <TableCell>{task.groupName}</TableCell>
-                      <TableCell>{task.division}</TableCell>
-                      <TableCell>{task.status}</TableCell>
-                      <TableCell>{task.assignedTo}</TableCell>
-                      <TableCell>{task.role}</TableCell>
-                      <TableCell>{task.createdDate}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+    {selectedTask === "my" && (
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Start Case</TableCell>
+              <TableCell>Case Ref No.</TableCell>
+              <TableCell>ChildReview ID</TableCell>
+              <TableCell>Issue ID</TableCell>
+              <TableCell>Track Issue ID</TableCell>
+              <TableCell>Group Name</TableCell>
+              <TableCell>Division</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Assigned To</TableCell>
+              <TableCell>Activity Level</TableCell>
+              <TableCell>Created Date</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {myTasks
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((task) => (
+                <TableRow key={task.id}>
+                  <TableCell>
+                    <PlayArrowIcon
+                      className="text-green-500 cursor-pointer"
+                      onClick={() => handlePlayClickForSrCR(task)}
+                      onDoubleClick={() => handlePlayClickForAssignCR(task)}
+                    />
+                  </TableCell>
+                  <TableCell>{task.caseRefNo}</TableCell>
+                  <TableCell>{task.childReviewId}</TableCell>
+                  <TableCell>{task.issueId}</TableCell>
+                  <TableCell>{task.trackIssueId}</TableCell>
+                  <TableCell>{task.groupName}</TableCell>
+                  <TableCell>{task.divisionName}</TableCell>
+                  <TableCell>{task.status}</TableCell>
+                  <TableCell>{name}</TableCell>
+                  <TableCell>{roleDisplay}</TableCell>
+                  <TableCell>{createdDates[task.id]}</TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+        {/* Pagination Component */}
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={myTasks.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </TableContainer>
+    )}
 
-              </Table>
-            </TableContainer>
-          )}
-          {selectedTask === 'my' && (
-            <TableContainer component={Paper}>
-              <Table>
-              <TableHead>
-                  <TableRow>
-                  <TableCell>Start Case</TableCell>
-                    <TableCell>Review ID</TableCell>
-                    <TableCell>ChildReview ID</TableCell>
-                    <TableCell>Issue ID</TableCell>
-                    <TableCell>Track Issue ID</TableCell>
-                    <TableCell>Group Name</TableCell>
-                    <TableCell>Division</TableCell>
-                    <TableCell>Current Status</TableCell>
-                    <TableCell>Assigned To</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Created Date</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {myTasks.map((task) => (
-                    <TableRow key={task.id}>
-                       <TableCell>
-                        <PlayArrowIcon
-                          className="text-green-500 cursor-pointer"
-                          onClick={() => handlePlayClickForSrCR(task)}
-                          onDoubleClick={() => handlePlayClickForAssignCR(task)}
-                        />
-                      </TableCell>
-                      <TableCell>{task.reviewId}</TableCell>
-                      <TableCell>{task.childReviewId}</TableCell>
-                      <TableCell>{task.issueId}</TableCell>
-                      <TableCell>{task.trackIssueId}</TableCell>
-                      <TableCell>{task.groupName}</TableCell>
-                      <TableCell>{task.division}</TableCell>
-                      <TableCell>{task.status}</TableCell>
-                      <TableCell>{task.assignedTo}</TableCell>
-                      <TableCell>{task.role}</TableCell>
-                      <TableCell>{task.createdDate}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-
-              </Table>
-            </TableContainer>
-          )}
           {!selectedTask && <p>Select a task to view content.</p>}
         </div>
       </div>

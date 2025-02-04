@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { Provider } from 'react-redux'; // Import Provider if using Redux
 import Layout from './Layout.jsx'
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
  import SrCreditReviewer from './components/Sr. Credit Reviewer/SrCreditReviewer';
@@ -13,29 +14,35 @@ import CreditReviewertoAssignSPOC from './components/CreditReviewer/CreditReview
 import SPOCScreenForChild from './components/SPOC/SPOCScreenForChild.jsx'
 import SPOCScreenForIssue from './components/SPOC/SPOCScreenForIssue.jsx'
 import LoginPage from './components/SignIn&SignUp/Login.jsx'
+import store from './components/features/store.js';
 const loggedInUser = "John Doe";
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <Route path="/" element={<Layout />}>
-      <Route path="/login" element={<LoginPage/>} /> 
-      <Route path="/" element={<DashboardOfSrCR loggedInUser={loggedInUser}/>} /> 
-      <Route path="srcreditreviewer" element={<SrCreditReviewer loggedInUser={loggedInUser}/>} /> 
-      <Route path="dashboardfcr" element={<DashboardOfHOFCR loggedInUser={loggedInUser}/>} /> 
-      <Route path="headOfFCR" element={<HeadOfFCR loggedInUser={loggedInUser} />} /> 
-      <Route path="srcrassign" element={<SrCRAssignCR loggedInUser={loggedInUser}/>} />
-      <Route path="dashtoAssign" element={<DashboardtoAssignCR loggedInUser={loggedInUser}/>} /> 
-      <Route path="creditreviewerassign" element={<CreditReviewertoAssignSPOC loggedInUser={loggedInUser} />} />
-      <Route path="spocchild" element={<SPOCScreenForChild loggedInUser={loggedInUser}/>} />
-      <Route path="spocissue" element={<SPOCScreenForIssue loggedInUser={loggedInUser}/>} />
-    </Route>
-  )
-)
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <RouterProvider router={router} />
-  </StrictMode>
-)
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <Route path="/" element={<Layout />}>
+        <Route path="/login" element={<LoginPage/>} /> 
+        <Route path="/"  element={<DashboardOfSrCR loggedInUser={loggedInUser}    />} /> 
+        <Route path="srcreditreviewer" element={<SrCreditReviewer loggedInUser={loggedInUser}/>} /> 
+        <Route path="dashboardfcr" element={<DashboardOfHOFCR loggedInUser={loggedInUser}/>} /> 
+        <Route path="headOfFCR" element={<HeadOfFCR loggedInUser={loggedInUser} />} /> 
+        <Route path="srcrassign" element={<SrCRAssignCR loggedInUser={loggedInUser}/>} />
+        <Route path="dashtoAssign" element={<DashboardtoAssignCR loggedInUser={loggedInUser}/>} /> 
+        <Route path="creditreviewerassign" element={<CreditReviewertoAssignSPOC loggedInUser={loggedInUser} />} />
+        <Route path="spocchild" element={<SPOCScreenForChild loggedInUser={loggedInUser}/>} />
+        <Route path="spocissue" element={<SPOCScreenForIssue loggedInUser={loggedInUser}/>} />
+      </Route>
+    )
+  )
+
+  
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <Provider store={store}>
+        <RouterProvider router={router} />
+      </Provider>
+    </StrictMode>
+  );
+  
 
 
 

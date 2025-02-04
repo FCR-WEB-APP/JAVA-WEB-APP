@@ -27,10 +27,15 @@ import {
   import DeleteIcon from "@mui/icons-material/Delete";
   import PreviewIcon from '@mui/icons-material/Preview';
   import { useNavigate } from "react-router-dom";
+  import Swal from "sweetalert2";
+  import { useSelector } from 'react-redux';
+  import axios from "axios";
   const SrCreditReviewer = ({ loggedInUser }) => {
   
-  
-  
+      const caseDetails  = useSelector((state) => state.case.caseData);
+
+      
+      console.log("We are in sr credit re: ", caseDetails);
     {/********  Planning & Action Stage ******* */}
   
     
@@ -111,9 +116,9 @@ import {
           setUploadedFiles(newFiles);
         };
         
-       const handleFileUploadForObligor = (file) => {
-          setUploadedFiles([...uploadedFiles, { fileName: file.name, fileSize: file.size }]);
-        };
+      //  const handleFileUploadForObligor = (file) => {
+      //     setUploadedFiles([...uploadedFiles, { fileName: file.name, fileSize: file.size }]);
+      //   };
       const handleClickOpen = (index) => {
         setFileIndex(index);
         setOpen(true);
@@ -180,31 +185,61 @@ import {
     //       });
     //   };
     
-    const navigate = useNavigate();
 
-    const handleSubmitToDashboard = (event) => {
-        event.preventDefault(); // Prevent default form submission
+  
+    // const   handleSubmitToDashboard = (event) => {
+    //   event.preventDefault(); // Prevent default form submission
     
-        // Basic validations
-        if (planningValue === "Planning Completed" && !file) {
-          alert("Please upload a document before submitting.");
-          return;
-        }
+    //   // Validation for file upload
+    //   if (
+    //     (planningValue === "Planning Completed" || planningValue === "Planning in-Progress") &&
+    //     !file
+    //   ) {
+    //     Swal.fire({
+    //       icon: "warning",
+    //       title: "Upload Required",
+    //       text: "Please upload a document before submitting.",
+    //     });
+    //     return;
+    //   }
     
-        if (planningValue === "" || assignee === "") {
-          alert("Please fill in all required fields.");
-          return;
-        }
+    //   // Check for required fields
+    //   if (planningValue === "" || assignee === "") {
+    //     Swal.fire({
+    //       icon: "warning",
+    //       title: "Incomplete Form",
+    //       text: "Please fill in all required fields before submitting.",
+    //     });
+    //     return;
+    //   }
     
-        // Simulate successful form submission
-        alert("Form submitted successfully!");
-        setPlanningValue("");
-        setAssignee("");
-        setFile(null);
+    //   // Show loader and simulate submission
+    //   Swal.fire({
+    //     title: "Submitting...",
+    //     text: "Please wait while we process your submission.",
+    //     allowOutsideClick: false,
+    //     allowEscapeKey: false,
+    //     didOpen: () => {
+    //       Swal.showLoading();
+    //     },
+    //     timer: 3000, 
+    //     timerProgressBar: true,
+    //   }).then(() => {
+    //     // After the loader, show success message
+    //     Swal.fire({
+    //       icon: "success",
+    //       title: "Success!",
+    //       text: "Your form has been submitted successfully!",
+    //     });
     
-        // Navigate to Dashboard
-        navigate("/dashboardfcr");
-      };
+    //      setPlanningValue("");
+    //     setAssignee("");
+    //     setFile(null);
+    
+    //      navigate("/dashboardfcr");
+    //   });
+    // };
+    
     
   
        {/********  Response & Remediation Stage ******* */}
@@ -455,51 +490,242 @@ import {
   
     
   
-    
+
+
+
+
+       //First Modification
+
+       const staticJWTToken = localStorage.getItem('Bearer');
+
+  const decodeJWT = (token) => {
+    if (!token || token.split(".").length !== 3) {
+      throw new Error("Invalid token format");
+    }
+    const payload = token.split(".")[1];  // Get the payload part
+    const decodedPayload = JSON.parse(atob(payload));  // Decode from Base64 to 
+ ;
+    return decodedPayload;
+  };
   
+  const decodedToken = decodeJWT(staticJWTToken);
+  const name = decodedToken.sub;
+  const roles = decodedToken.roles;
+  const roleDisplay = Array.isArray(roles) ? roles.join(', ') : roles;
+  console.log("roles are :",roles);
+
+
+  const navigate = useNavigate();
+
+  const [groupTasks, setGroupTasks] = useState([]);
+   const [selectedTask, setSelectedTask] = useState(null);
+ 
+   const [myTasks, setMyTasks] = useState([]);
+   const handleSubmitToDashboard = async () => {
+
+    const payload = {
+        caseRefNo: caseDetails.caseRefNo, 
+        actions: "Submitted to Head Of FCR", 
+        status: caseDetails.status, 
+        assignedTo: null, // Ensure this is correct, or assign a value here if necessary
+        activityLevel: roles, // Ensure 'roles' is a valid value (string)
+        updatedDate: new Date().toISOString(),
+        planing: caseDetails.planing, // Ensure this is a valid planning value
+        fieldWork: caseDetails.fieldWork, // Ensure this is correct data
+    };
+
+    try {
+        // Show the loader before making the request
+        Swal.fire({
+            title: 'Submitting Task...',
+            text: 'Please wait while we submit the task.',
+            icon: 'info',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            },
+        });
+
+        const response = await axios.put(
+            'http://localhost:1000/api/SubmitTaskLeader',
+            payload,
+            {
+                headers: {
+                    'Authorization': `Bearer ${staticJWTToken}`,
+                    'username': name,
+                },
+            }
+        );
+
+        if (response.status === 200) {
+            setGroupTasks((prevTasks) => prevTasks.filter(t => t.caseRefNo !== caseDetails.caseRefNo));
+            setMyTasks((prevTasks) => [...prevTasks, { ...caseDetails, assignedTo: "Head Of FCR" }]);
+            setSelectedTask('my');
+
+            // After the API request succeeds, show the success message after a 3-second delay
+            setTimeout(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Task Updated',
+                    text: 'The task has been successfully submitted to Head Of FCR.',
+                    confirmButtonColor: '#3085d6',
+                    timer: 2000,
+                });
+            }, 3000); // 3-second delay
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Failed to Submit Task',
+                text: 'There was an issue submitting the task.',
+                confirmButtonColor: '#d33',
+            });
+        }
+    } catch (error) {
+        console.error('Error submitting task:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'An Error Occurred',
+            text: 'An error occurred while submitting the task. Please try again.',
+            confirmButtonColor: '#d33',
+        });
+    }
+};
+
+ 
+
+  const handleFileUploadForObligor = async (file) => {
+    const uploadFileId = Date.now(); // Unique file ID
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Show loading Swal with higher z-index
+    Swal.fire({
+        title: 'Uploading File...',
+        html: 'Please wait while we process your upload.',
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        didOpen: () => {
+          handleClose();
+          Swal.showLoading();
+        },
+        customClass: {
+            popup: 'swal-on-top',
+            backdrop: 'swal-backdrop-on-top'
+        }
+    });
+
+    try {
+        const response = await axios.post(
+            `http://localhost:1000/api/upload/addFile/${uploadFileId}`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${staticJWTToken}`,
+                    'username': name
+                },
+            }
+        );
+
+        if (response.status === 201) {
+            console.log('File uploaded successfully:', response.data);
+            
+            // Add uploaded file details to state
+            setUploadedFiles((prevFiles) => [
+                ...prevFiles,
+                { fileName: file.name, fileSize: file.size, fileUrl: response.data.fileUrl } // Assuming response contains fileUrl
+            ]);
+
+            // Wait for 3 seconds before showing success message
+            setTimeout(() => {
+                Swal.close(); // Close loader
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Upload Successful',
+                    text: 'The file has been uploaded successfully.',
+                    confirmButtonColor: '#3085d6',
+                    timer: 2000,
+                    customClass: {
+                        popup: 'swal-on-top',
+                        backdrop: 'swal-backdrop-on-top'
+                    }
+                }).then(()=>{
+                  handleClickOpen();
+                });
+            }, 3000);
+            
+        }
+
+    } catch (error) {
+        Swal.close(); // Close loader in case of error
+        console.error('Error uploading file:', error);
+        
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "There was an error uploading the file. Please try again.",
+            customClass: {
+                popup: 'swal-on-top',
+                backdrop: 'swal-backdrop-on-top'
+            }
+        });
+    }
+};
+
   
    
     return (
       <Box className="p-4 border border-orange-500 rounded-lg bg-white shadow-md">
         {/* Case Details Section */}
         <Box
-          className="mb-6 p-4"
-          sx={{ backgroundColor: "#f5f5f5", borderRadius: "8px" }}
-        >
-          <Typography variant="h6" className="text-orange-500 font-bold mb-4">
-            Case Details
-          </Typography>
-          <Box className="bg-white p-4 rounded-lg shadow-sm">
-            <Grid container spacing={3}>
-              {[
-                { label: "Review ID ", value: "#FCR-202410210778" },
-                { label: "Division", value: "abc" },
-                { label: "Group Name", value: "kjdskhfj" },
-                { label: "FCR user", value: loggedInUser },
-                { label: "Roles", value: "Sr Credit Reviser" },
-                { label: "Case Status", value: "Case Approved By Head of FCR" },
-                {
-                  label: "Case Created Date",
-                  value: new Date().toLocaleDateString(),
-                },
-              ].map((item, index) => (
-                <Grid item xs={12} md={4} key={index}>
-                  <Box className="flex items-center">
-                    <Box
-                      className="p-2 bg-orange-500 text-white text-center rounded-full"
-                      sx={{ display: "inline-block", minWidth: "100px" }}
-                    >
-                      {item.label}
-                    </Box>
-                    <Typography className="text-gray-700 ml-4">
-                      <strong>{item.value}</strong>
-                    </Typography>
+      className="mb-6 p-4"
+      sx={{ backgroundColor: "#f5f5f5", borderRadius: "8px" }}
+    >
+      <Typography variant="h6" className="text-orange-500 font-bold mb-4">
+        Case Details
+      </Typography>
+      <Box className="bg-white p-4 rounded-lg shadow-sm">
+        <Grid container spacing={3}>
+          {caseDetails ? (
+            [
+
+              { label: "Review ID ", value: caseDetails.caseRefNo},
+              { label: "Division", value: caseDetails.divisionName},
+              { label: "Group Name", value: caseDetails.groupName},
+              { label: "FCR user", value: loggedInUser },
+              { label: "Roles", value: "Sr Credit Reviser" },
+              { label: "Case Status", value: "Case Approved By Head of FCR" },
+              {
+                label: "Case Created Date",
+                value: caseData.created_date
+                  ? new Date(caseData.created_date).toLocaleDateString()
+                  : new Date().toLocaleDateString(),
+              },
+            ].map((item, index) => (
+              <Grid item xs={12} md={4} key={index}>
+                <Box className="flex items-center">
+                  <Box
+                    className="p-2 bg-orange-500 text-white text-center rounded-full"
+                    sx={{ display: "inline-block", minWidth: "100px" }}
+                  >
+                    {item.label}
                   </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        </Box>
+                  <Typography className="text-gray-700 ml-4">
+                    <strong>{item.value}</strong>
+                  </Typography>
+                </Box>
+              </Grid>
+            ))
+          ) : (
+            <Typography>No Case Data Available</Typography>
+          )}
+        </Grid>
+      </Box>
+    </Box>
+
+
   
         {/* Planning & Action Stage */}
         <Box
